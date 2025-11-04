@@ -1,6 +1,6 @@
-# GENHTML5
+# Html5maker
 
-Genhtml5 is a simple webpage generator. it depends on Markdown (library) and xml.etree
+This is a simple webpage generator. it depends on Markdown (library) and xml.etree
 The goal is to easily create an entire statique website.
 
 ## introduction
