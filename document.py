@@ -1,23 +1,20 @@
 #!./env/bin/python3
 
-from container import et,HtmlSection, HtmlText, SvgContainer
+from svgtag import *
+from htmltag import *
+
 from pathlib import Path
 from getpass import getuser
 
-class Page(HtmlSection):
-
-    def __init__(self,title : str = 'example', **kwargs):
-        super().__init__('body',**kwargs)
-        self.title = title
-
 class Document:
-    """ Website object: it contains the name of the project,
-        directory where to put the files, the used language, the name of
-        the css files, and the authors informations. """
+    """ Web document object: it contains the name of the project,
+        directory where to put the files, the language, the css files,
+        and the authors informations. """
+    firstpage = 'index'
 
     def __init__(self,name='LOREM IPSUM',
                       src_dir = '.',
-                      dest_dir = '.',
+                      dest_dir = '/home/patrice/Bureau',
                       md_dir = 'Markdown',
                       cssfile = 'styles/styles.css',
                       lang = 'fr',
@@ -25,60 +22,73 @@ class Document:
 
         self.name = name
         self.src_dir = Path(dest_dir)
-        self.dest_dir = Path(dest_dir)
+        if(dest_dir.startswith("~")):
+            dest = Path(dest_dir).expanduser()
+        else:
+            dest = Path(dest_dir)
+
+        self.dest_dir = Path(dest) / self.name
+        self.dest_dir.mkdir(exist_ok = True)
         self.md_dir = Path(md_dir)
         self.css = Path(cssfile)
         self.lang = lang
         self.pages = {}
 
     def get_page(self,name:str):
-        return self._pages[name]
+        return self.pages[name]
 
-    def add_page(self, title : str):
-        """Add a new web page. """
-        if self.pages == {} :
-            self.pages['index'] = Page(self.name)
+    def add_page(self, *pages : Body)->Body:
+        """Add new page. """
 
-        elif (title not in self.pages.keys()):
-                self.pages[title] = Page(title)
+        for page in pages:
+            if self.pages == {} :
+                page.title = self.name
+                self.pages[self.__class__.firstpage] = page
+
+            elif (page.title not in self.pages.keys()):
+                    self.pages[page.title] = page
         
-        else :
-            print("page exist, can't duplicate")
+            elif not isinstance(page,Body):
+                print("Object have to be Body class")
+            else :
+                print("page exist, can't duplicate")
 
-        return self
+        return pages[-1]
          
-    def _build_head(self,page : Page)-> str:
+    def _build_head(self,page : Body)-> str:
 
         html =f'<html lang ="{self.lang}">\n'
 
         #head of the page
         html += f'<head><meta charset = "utf-8" />\n'
         html += f'<title>{page.title}</title>\n'
-        html += f'<meta name = "author" content="{getuser()}" />\n'
-        html += f'<meta name = "viewport" content="width=device-width" initial-scale = "1.0" />\n'
-        html += f'<link href = "{self.css.resolve()}" rel = "stylesheet" />\n</head>\n'
+        html += f'<meta name="author" content="{getuser()}" />\n'
+        html += f'<meta name="viewport" content="width=device-width" initial-scale = "1.0" />\n'
+        css = self.css.read_text(encoding="utf-8")
+        html += f'<style>{css}\n</style>\n</head>\n'
 
         return html
 
-    def _pages_menu(self):
+    def main_menu(self,cls : str = 'heading'):
 
-        ul=et.Element('ul',**{'id':'menu'})
+        header = Header(**{'class' : cls})
+
+        ul=Ul(id='menu')
 
         for k,v in self.pages.items():
-            if k != WebSite.firstpage:
-                li=et.SubElement(ul,'li')
-                a=et.SubElement(li,'a',href=f'{k}.html',title=f'Aller à {k}')
-                a.text=k
-                element=v._link_list()
-                li.append(element)
-        return ul
-
+            if k != self.__class__.firstpage:
+                ul.append(Li().append(A(k,href=f'{k}.html',title=f'Aller à {k}')))
+        return header + ul
+        
     def to_file(self):
+        
+        menu = self.main_menu()
 
         for name,page in self.pages.items():
-            file = Path.expanduser(self.dest_dir) / name
+            file = self.dest_dir / name
             file = file.with_suffix('.html')
             head = self._build_head(page)
+            page.insert(0,menu)
             body = page.tostring()
              
             with file.open('w',encoding = 'utf-8') as f:
@@ -90,12 +100,40 @@ class Document:
 if __name__ == '__main__' :
 
     config = { 'src_dir' : '.',
-               'name': "Arbre binaire",
+               'name': "Lorem Ipsum",
                'dest_dir': "~/Bureau/",
                'lang'    : 'fr',
-               'md_dir' : 'Markdown' 
+               'md_dir' : 'Markdown', 
+               'cssfile' : 'styles/styles.css'
               }
-
     d = Document(**config)
-    d.add_page('test')
+
+    home = Body(d.name)
+    home.add_from_markdown(Path('Markdown/projet.md'),parent = 'article')
+
+    linestyle = {'stroke' : 'blue', 'stroke-width' : '2px', 'fill' : 'gray'}
+    groupe1 = Groupe(**linestyle)
+
+    groupe1.basicshape('line',300,200,456,234)
+    groupe1.basicshape('circle',300,200,45)
+
+    with Svg() as dessin:
+
+        dessin.append(groupe1)
+
+        dessin.append(Texte(200,300,"test"))
+
+        dessin.basicshape('ellipse',600,500,45,70, stroke = 'red',fill = 'green')
+        dessin.basicshape('rect',300,700,300,150,**linestyle)
+
+        dessin.append(Use("stric", transform="translate(200,150) scale(3) rotate(17)"))
+
+    home.append(dessin)
+    home.add_from_markdown(Path('Markdown/article.md'))
+    home.add_from_markdown(Path('Markdown/article2.md'))
+
+    nex = Body("next")
+    denex = Body("denext")
+    nex.add_from_markdown(Path('Markdown/article2.md'))
+    d.add_page(home,nex,denex)
     d.to_file()

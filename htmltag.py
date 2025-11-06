@@ -4,6 +4,12 @@ import container
 from pathlib import Path
 
 #Concrete html section 
+class Body(container.HtmlSection):
+    __slots__ = ('title',)
+    def __init__(self,title : str,**kwargs):
+        super().__init__('body',**kwargs)
+        self.title = title
+
 class Main(container.HtmlSection):
 
     """Simple html page object"""
@@ -20,16 +26,48 @@ class Article(container.HtmlSection):
     def __init__(self, **kwargs):
         super().__init__('article', **kwargs)
 
-#Concrete html text 
-class Paragraph(container.HtmlText):
+class Header(container.HtmlSection):
     
-    def __init__(self,input_str : str = '', **kwargs):
-        super().__init__('p',input_str,**kwargs)
+    def __init__(self, **kwargs):
+        super().__init__('header', **kwargs)
+
+class Footer(container.HtmlSection):
+    
+    def __init__(self, **kwargs):
+        super().__init__('footer', **kwargs)
+
+class Ul(container.HtmlSection):
+    
+    def __init__(self, **kwargs):
+        super().__init__('ul', **kwargs)
+
+class Li(container.HtmlSection):
+    
+    def __init__(self, **kwargs):
+        super().__init__('li', **kwargs)
+
+#Concrete html text 
 
 class h1(container.HtmlText):
     
     def __init__(self,input_str : str = '', **kwargs):
         super().__init__('h1',input_str,**kwargs)
+
+class h2(container.HtmlText):
+    
+    def __init__(self,input_str : str = '', **kwargs):
+        super().__init__('h2',input_str,**kwargs)
+
+class A(container.HtmlText):
+    
+    def __init__(self,input_str : str = '', **kwargs):
+        super().__init__('a',input_str,**kwargs)
+
+class Paragraph(container.HtmlText):
+    
+    def __init__(self,input_str : str = '', **kwargs):
+        super().__init__('p',input_str,**kwargs)
+
 
 # class Img(HtmlContainer):
 
@@ -60,6 +98,9 @@ class h1(container.HtmlText):
 
 #         self.root.append(fc)
 
+def CLASS( data : str)->dict:
+    return {'class' : data }
+
 if __name__ == '__main__':
 
     home = Main()
@@ -70,4 +111,5 @@ if __name__ == '__main__':
     home.add_from_markdown(Path('Markdown/article2.md'))
     div = home.create_section_tag('div')
     home.append(Paragraph("Un deuxieme"))
+
     print(home,end ='')

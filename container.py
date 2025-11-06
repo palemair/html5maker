@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import xml.etree.ElementTree as et
 from pathlib import Path
 import pathlib
+import functools
 
 from markdown.core import Markdown
 
@@ -53,7 +54,8 @@ class MdConverter(Markdown):
 class Container(ABC):
     
     "Abstract element container"
-    
+    __slots__ = ('_root',)    
+
     def __init__(self,tag : str, **kwargs):
 
         self._root = et.Element(tag,**kwargs)
@@ -77,6 +79,17 @@ class Container(ABC):
 
         return self
 
+    def insert(self,number : int,container):
+        
+        self._root.insert(number,container._root)
+
+        return self
+
+    def __add__(self,container):
+
+        self._root.append(container._root)
+        return self
+
     def tostring(self)->str:
         return et.tostring(self._root,encoding = 'unicode',method = 'html',short_empty_elements = True)
 
@@ -96,6 +109,32 @@ class Container(ABC):
                 buffer.append(f"</{root.tag}>\n")
 
         return ''.join(buffer)
+
+    @staticmethod
+    def _content_list(source : et.Element = 'section', target : str = 'h2') -> et.Element :
+
+        """Create a linked element list from an element
+
+        Arguments:
+            source : Element in wich 'target' is listed
+
+            target : Element searched in the 'source'
+
+        Returns:
+            An xml.etree.Element 
+        """
+
+        ul = et.Element('ul')
+
+        liste_elt = (elt for elt in source.iterfind(f'.//{target}'))
+        
+        for elt in liste_elt:
+            elt.set('id',titre.text)
+            li=et.SubElement(ul,'li')
+            a=et.SubElement(li,'a',href=f'{self.title}.html#{titre.text}',title=f'Aller à {titre.text}')
+            a.text=titre.text
+
+        return ul
 
 #abstract class htmlcontainer
 class HtmlSection(Container):
@@ -138,34 +177,6 @@ class HtmlSection(Container):
             tree.tag = parent
             self._root.append(tree)
 
-    def _content_list(self, source : et.Element, target : str = 'h2') -> et.Element :
-
-        """Create a linked element list from an element
-
-        Arguments:
-            source : Element in wich 'target' is listed
-
-            target : Element searched in the 'source'
-
-        Returns:
-            An xml.etree.Element 
-        """
-
-        ul = et.Element('ul')
-
-        liste_elt = (elt for elt in source.iterfind(f'.//{elt}'))
-        
-        for elt in liste_elt:
-            titre = elt.find(f'.//{target}')
-
-            if titre is not None :
-                elt.set('id',titre.text)
-                li=et.SubElement(ul,'li')
-                a=et.SubElement(li,'a',href=f'{self.title}.html#{titre.text}',title=f'Aller à {titre.text}')
-                a.text=titre.text
-
-        return ul
-
     @classmethod
     def convert(cls,md_string : str) -> et.Element :
 
@@ -173,18 +184,14 @@ class HtmlSection(Container):
         cls.converter.reset()
         return root
 
-    @classmethod
-    def convert(cls,md_string : str) -> et.Element :
-
-        root = cls.converter.convert_to_tree(md_string)
-        cls.converter.reset()
-        return root
 
     @staticmethod
     def create_section_tag(tag : str, **kwargs):
 
         match tag:
             case 'main':
+                raise ValueError("You can only assign 'main' with a main object !!")
+            case 'body':
                 raise ValueError("You can only assign 'main' with a main object !!")
             case _:
                 return HtmlSection(tag, **kwargs)

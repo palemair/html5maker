@@ -1,11 +1,12 @@
 #!./env/bin/python3
 
-import container
 from pathlib import Path
+import container
 
 #Concrete Svg container 
 class Svg(container.SvgContainer):
 
+    __slots__ = ('width','height','cssfile')    
     "Svg : Element root of the drawing"
 
     def __init__(self, width : int = 1000, height : int = 1000, cssfile = ''):
@@ -36,7 +37,7 @@ class Svg(container.SvgContainer):
         with file.open('w',encoding = 'utf-8') as f:
             f.write('<?xml version = "1.0" encoding="UTF-8">\n')
             f.write('<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"\n "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">\n')
-            f.write(f"{et.tostring(self._root,encoding = 'unicode')}")
+            f.write(f"{container.et.tostring(self._root,encoding = 'unicode')}")
 
         if (self._root.find('style') is not None):
             self._root.remove(style)
@@ -97,6 +98,4 @@ if __name__ == '__main__':
         dessin.basicshape('ellipse',600,500,45,70, stroke = 'red',fill = 'green')
         dessin.basicshape('rect',300,700,300,150,**linestyle)
 
-        dessin.append(Use("stric", transform="translate(200,150) scale(3) rotate(17)"))
-    
-    print(dessin)
+    dessin.to_svg_file('tes')
