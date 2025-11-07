@@ -98,9 +98,6 @@ class Paragraph(container.HtmlText):
 
 #         self.root.append(fc)
 
-def CLASS( data : str)->dict:
-    return {'class' : data }
-
 if __name__ == '__main__':
 
     home = Main()

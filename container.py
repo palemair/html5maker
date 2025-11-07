@@ -4,12 +4,11 @@ from abc import ABC, abstractmethod
 import xml.etree.ElementTree as et
 from pathlib import Path
 import pathlib
-import functools
 
-from markdown.core import Markdown
+import markdown
 
 #Specific Markdown Converter
-class MdConverter(Markdown):
+class MdConverter(markdown.core.Markdown):
     
     def convert_to_tree(self, source: str) -> str:
         """
