@@ -49,7 +49,7 @@ class Svg(container.SvgContainer):
     def __exit__(self,exc_type, exc_value, traceback):
         
         self._root.set('width' , '100%')
-        self._root.set('height' , '100%')
+        self._root.set('height' , 'auto')
         self._root.set('viewBox', f"0 0 {self.width} {self.height}")
 
 class Groupe(container.SvgContainer):

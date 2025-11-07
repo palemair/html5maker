@@ -64,8 +64,8 @@ class Document:
         html += f'<title>{page.title}</title>\n'
         html += f'<meta name="author" content="{getuser()}" />\n'
         html += f'<meta name="viewport" content="width=device-width" initial-scale = "1.0" />\n'
-        css = self.css.read_text(encoding="utf-8")
-        html += f'<style>{css}\n</style>\n</head>\n'
+        css = self.css.resolve()
+        html += f'<link rel="stylesheet" href="{css}" />\n</head>\n'
 
         return html
 
@@ -77,7 +77,11 @@ class Document:
 
         for k,v in self.pages.items():
             if k != self.__class__.firstpage:
-                ul.append(Li().append(A(k,href=f'{k}.html',title=f'Aller à {k}')))
+                t = k
+            else:
+                t = self.name
+            ul.append(Li().append(A(t,href=f'{k}.html',title=f'Aller à {t}')))
+
         return header + ul
         
     def to_file(self):
@@ -109,29 +113,22 @@ if __name__ == '__main__' :
     d = Document(**config)
 
     home = Body(d.name)
-    home.add_from_markdown(Path('Markdown/projet.md'),parent = 'article')
+    main = Main()
+
+    main.add_from_markdown(Path('Markdown/projet.md'),parent = 'article')
 
     linestyle = {'stroke' : 'blue', 'stroke-width' : '2px', 'fill' : 'gray'}
-    groupe1 = Groupe(**linestyle)
 
-    groupe1.basicshape('line',300,200,456,234)
-    groupe1.basicshape('circle',300,200,45)
+    with Svg(width = 600,height = 100) as dessin:
 
-    with Svg() as dessin:
+        dessin.basicshape('circle',300,50,25, stroke = 'blue',fill = 'green')
+        dessin.basicshape('rect',0,0,150,50,**linestyle)
 
-        dessin.append(groupe1)
+    main += dessin
+    main.add_from_markdown(Path('Markdown/article.md'))
+    main.add_from_markdown(Path('Markdown/article2.md'))
 
-        dessin.append(Texte(200,300,"test"))
-
-        dessin.basicshape('ellipse',600,500,45,70, stroke = 'red',fill = 'green')
-        dessin.basicshape('rect',300,700,300,150,**linestyle)
-
-        dessin.append(Use("stric", transform="translate(200,150) scale(3) rotate(17)"))
-
-    home.append(dessin)
-    home.add_from_markdown(Path('Markdown/article.md'))
-    home.add_from_markdown(Path('Markdown/article2.md'))
-
+    home += main
     nex = Body("next")
     denex = Body("denext")
     nex.add_from_markdown(Path('Markdown/article2.md'))
