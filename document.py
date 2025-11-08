@@ -1,4 +1,4 @@
-#!./env/bin/python3
+#!./myenv/bin/python3
 
 from pathlib import Path
 from getpass import getuser
@@ -53,6 +53,14 @@ class Document:
 
         return pages[-1]
          
+    def __str__(self) ->str:
+
+        ret = f'< Contenu du document :\n{self.name} :'
+        for k,v in self.pages.items():
+            ret += f'\n\t{v.title} -> "{k}.html"'
+        ret += ' >'
+        return ret
+
     def _build_head(self,page : Body)-> str:
 
         html =f'<html lang ="{self.lang}">\n'
@@ -133,7 +141,7 @@ if __name__ == '__main__' :
 
     nex = Body("next")
 
-    denex = Body("denext")
     nex.add_from_markdown(Path('Markdown/article2.md'))
-    mydoc.add_page(home,nex,denex)
+    mydoc.add_page(home,nex)
+    print(mydoc)
     mydoc.to_file()

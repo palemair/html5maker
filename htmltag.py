@@ -1,4 +1,4 @@
-#!./env/bin/python3
+#!./myenv/bin/python3
 
 from pathlib import Path
 from html5 import container
@@ -6,45 +6,45 @@ from html5 import container
 #Concrete html section 
 class Body(container.HtmlSection):
     __slots__ = ('title',)
-    def __init__(self,title : str,**kwargs):
-        super().__init__('body',**kwargs)
+    def __init__(self,title : str,attrib : dict = {} ,**kwargs):
+        super().__init__('body',attrib,**kwargs)
         self.title = title
 
 class Main(container.HtmlSection):
 
     """Simple html page object"""
-    def __init__(self, **kwargs):
-        super().__init__('main',**kwargs)
+    def __init__(self, attrib : dict = {} ,**kwargs):
+        super().__init__('main',attrib ,**kwargs)
 
 class Section(container.HtmlSection):
     
-    def __init__(self, **kwargs):
-        super().__init__('section', **kwargs)
+    def __init__(self, attrib : dict = {} ,**kwargs):
+        super().__init__('section', attrib ,**kwargs)
 
 class Article(container.HtmlSection):
     
-    def __init__(self, **kwargs):
-        super().__init__('article', **kwargs)
+    def __init__(self, attrib : dict = {} ,**kwargs):
+        super().__init__('article', attrib ,**kwargs)
 
 class Header(container.HtmlSection):
     
-    def __init__(self, **kwargs):
-        super().__init__('header', **kwargs)
+    def __init__(self, attrib : dict = {} ,**kwargs):
+        super().__init__('header', attrib ,**kwargs)
 
 class Footer(container.HtmlSection):
     
-    def __init__(self, **kwargs):
-        super().__init__('footer', **kwargs)
+    def __init__(self, attrib : dict = {} ,**kwargs):
+        super().__init__('footer', attrib ,**kwargs)
 
 class Ul(container.HtmlSection):
     
-    def __init__(self, **kwargs):
-        super().__init__('ul', **kwargs)
+    def __init__(self, attrib : dict = {} ,**kwargs):
+        super().__init__('ul', attrib ,**kwargs)
 
 class Li(container.HtmlSection):
     
-    def __init__(self, **kwargs):
-        super().__init__('li', **kwargs)
+    def __init__(self, attrib : dict = {} ,**kwargs):
+        super().__init__('li',attrib, **kwargs)
 
 #Concrete html text 
 
@@ -102,9 +102,6 @@ def CLASS(cls : str) :
 #         self.root.append(fc)
 
 if __name__ == '__main__':
-
-    import functools
-    HTML = functools.partial(container.HtmlSection,'html')
 
     home = Main()
     home.append(H1("title",CLASS('main')))
