@@ -1,7 +1,7 @@
 #!./env/bin/python3
 
 from pathlib import Path
-import container
+from html5 import container
 
 #Concrete Svg container 
 class Svg(container.SvgContainer):
@@ -9,14 +9,14 @@ class Svg(container.SvgContainer):
     __slots__ = ('width','height','cssfile')    
     "Svg : Element root of the drawing"
 
-    def __init__(self, width : int = 1000, height : int = 1000, cssfile = ''):
+    def __init__(self, width : int = 1000, height : int = 1000, cssfile = '',**extra):
         
         attrib_svg ={'version' : "1.1",
                      'baseProfile' : "full",
                      'xmlns' : "http://www.w3.org/2000/svg"                                                                                         
                      }
 
-        super().__init__('svg', **attrib_svg)
+        super().__init__('svg', attrib_svg,**extra)
         self.width = width
         self.height = height
         self.css = Path(cssfile)
@@ -54,30 +54,30 @@ class Svg(container.SvgContainer):
 
 class Groupe(container.SvgContainer):
 
-    def __init__(self, **kwargs):
-        super().__init__('g', **kwargs)
+    def __init__(self, attrib : dict = {},**kwargs):
+        super().__init__('g', attrib,**kwargs)
 
 class Defs(container.SvgContainer):
 
-    def __init__(self, **kwargs):
-        super().__init__('defs', **kwargs)
+    def __init__(self, attrib : dict = {},**kwargs):
+        super().__init__('defs', attrib,**kwargs)
 
 class Use(container.SvgContainer):
 
-    def __init__(self, href : str, **kwargs):
+    def __init__(self, href : str,attrib :dict = {}, **kwargs):
         
-        attrib = {"xlink:href" : f'#{href}'}
-        attrib.update(kwargs)
-        super().__init__('use', **attrib)
+        link = {"xlink:href" : f'#{href}'}
+        attrib.update(link)
+        super().__init__('use',attrib, **kwargs)
 
 class Texte(container.HtmlText):
 
     """ Must be use in svg only"""
-    def __init__(self, xpos : int, ypos : int , text : str, **kwargs):
+    def __init__(self, xpos : int, ypos : int , text : str,attrib : dict = {}, **kwargs):
         
-        attrib = dict(x = str(xpos), y = str(ypos))
-        attrib.update(kwargs)
-        super().__init__('text', **attrib)
+        position = dict((('x','y'),(str(xpos), str(ypos))))
+        attrib.update(position)
+        super().__init__('text',text, attrib, **kwargs)
         self.set_text(text)
 
 if __name__ == '__main__':
@@ -98,4 +98,5 @@ if __name__ == '__main__':
         dessin.basicshape('ellipse',600,500,45,70, stroke = 'red',fill = 'green')
         dessin.basicshape('rect',300,700,300,150,**linestyle)
 
+    print(dessin)
     dessin.to_svg_file('tes')

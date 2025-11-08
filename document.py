@@ -1,15 +1,16 @@
 #!./env/bin/python3
 
-from svgtag import *
-from htmltag import *
-
 from pathlib import Path
 from getpass import getuser
+
+from html5.htmltag import *
+from html5.svgtag import *
 
 class Document:
     """ Web document object: it contains the name of the project,
         directory where to put the files, the language, the css files,
         and the authors informations. """
+
     firstpage = 'index'
 
     def __init__(self,name='LOREM IPSUM',
@@ -22,12 +23,9 @@ class Document:
 
         self.name = name
         self.src_dir = Path(dest_dir)
-        if(dest_dir.startswith("~")):
-            dest = Path(dest_dir).expanduser()
-        else:
-            dest = Path(dest_dir)
-
+        dest = Path(dest_dir)
         self.dest_dir = Path(dest) / self.name
+        self.dest_dir = self.dest_dir.expanduser().absolute()
         self.dest_dir.mkdir(exist_ok = True)
         self.md_dir = Path(md_dir)
         self.css = Path(cssfile)
@@ -110,11 +108,14 @@ if __name__ == '__main__' :
                'md_dir' : 'Markdown', 
                'cssfile' : 'styles/styles.css'
               }
-    d = Document(**config)
 
-    home = Body(d.name)
+    mydoc = Document(**config)
+
+    home = Body(mydoc.name)
+
     main = Main()
 
+    main += H1('Gros titre',CLASS('titres'))
     main.add_from_markdown(Path('Markdown/projet.md'),parent = 'article')
 
     linestyle = {'stroke' : 'blue', 'stroke-width' : '2px', 'fill' : 'gray'}
@@ -129,8 +130,10 @@ if __name__ == '__main__' :
     main.add_from_markdown(Path('Markdown/article2.md'))
 
     home += main
+
     nex = Body("next")
+
     denex = Body("denext")
     nex.add_from_markdown(Path('Markdown/article2.md'))
-    d.add_page(home,nex,denex)
-    d.to_file()
+    mydoc.add_page(home,nex,denex)
+    mydoc.to_file()

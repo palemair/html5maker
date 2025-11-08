@@ -1,7 +1,7 @@
 #!./env/bin/python3
 
-import container
 from pathlib import Path
+from html5 import container
 
 #Concrete html section 
 class Body(container.HtmlSection):
@@ -48,12 +48,12 @@ class Li(container.HtmlSection):
 
 #Concrete html text 
 
-class h1(container.HtmlText):
+class H1(container.HtmlText):
     
-    def __init__(self,input_str : str = '', **kwargs):
-        super().__init__('h1',input_str,**kwargs)
+    def __init__(self,input_str : str = '',attrib : dict = {}, **kwargs):
+        super().__init__('h1',input_str,attrib,**kwargs)
 
-class h2(container.HtmlText):
+class H2(container.HtmlText):
     
     def __init__(self,input_str : str = '', **kwargs):
         super().__init__('h2',input_str,**kwargs)
@@ -68,6 +68,9 @@ class Paragraph(container.HtmlText):
     def __init__(self,input_str : str = '', **kwargs):
         super().__init__('p',input_str,**kwargs)
 
+
+def CLASS(cls : str) :
+    return({'class' : cls})
 
 # class Img(HtmlContainer):
 
@@ -100,8 +103,11 @@ class Paragraph(container.HtmlText):
 
 if __name__ == '__main__':
 
+    import functools
+    HTML = functools.partial(container.HtmlSection,'html')
+
     home = Main()
-    home.append(h1("title"))
+    home.append(H1("title",CLASS('main')))
     home.add_from_markdown("#Mardownprojet \n \n tredffg",parent = 'nav')
     home.add_from_markdown(Path('Markdown/projet.md'),parent = 'article')
     home.add_from_markdown(Path('Markdown/article.md'))

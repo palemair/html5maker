@@ -1,11 +1,14 @@
 #!./env/bin/python3
 
+"""abstract module defining the concrete classes"""
+
 from abc import ABC, abstractmethod
-import xml.etree.ElementTree as et
 from pathlib import Path
 import pathlib
+import xml.etree.ElementTree as et
 
 import markdown
+
 
 #Specific Markdown Converter
 class MdConverter(markdown.core.Markdown):
@@ -55,11 +58,11 @@ class Container(ABC):
     "Abstract element container"
     __slots__ = ('_root',)    
 
-    def __init__(self,tag : str, **kwargs):
+    def __init__(self,tag : str, attrib : dict = {},**kwargs):
 
-        self._root = et.Element(tag,**kwargs)
+        self._root = et.Element(tag,attrib,**kwargs)
 
-    def __repr__(self)-> str:
+    def __str__(self)-> str:
         
         b = []
         return Container._str_buffer(b,self._root,indent = 4)
@@ -95,6 +98,7 @@ class Container(ABC):
     @staticmethod
     def _str_buffer(buffer : list[str],root : et.Element, start : int = 0,indent : int = 2) -> str :
         
+        "pretty printing tree"
         if root is not None:
 
             content = root.text if root.text is not None else '\n'
@@ -142,9 +146,9 @@ class HtmlSection(Container):
 
     converter = MdConverter()
 
-    def __init__(self,tag : str, **kwargs) :
+    def __init__(self,tag : str,attrib : dict = {}, **kwargs) :
 
-        super().__init__(tag,**kwargs)
+        super().__init__(tag,attrib,**kwargs)
 
     def add_from_markdown(self,*input_contents : [ str | pathlib.PurePosixPath ], parent : str = 'div', **kwargs):
 
@@ -183,7 +187,6 @@ class HtmlSection(Container):
         cls.converter.reset()
         return root
 
-
     @staticmethod
     def create_section_tag(tag : str, **kwargs):
 
@@ -203,9 +206,9 @@ class HtmlSection(Container):
 class HtmlText(Container):
 
     "HTML text container : p,h1,..."
-    def __init__(self,tag : str,content : str = '', **kwargs):
+    def __init__(self,tag : str,content : str = '',attrib : dict = {}, **kwargs):
 
-        super().__init__(tag,**kwargs)
+        super().__init__(tag,attrib,**kwargs)
         self._root.text = content
 
     def set_text(self,input_text : str):
@@ -216,6 +219,9 @@ class HtmlText(Container):
 class SvgContainer(Container):
 
     "Svg generic container : Use, defs, animate...."
+    def __init__(self,tag : str,attrib : dict = {}, **kwargs) :
+
+        super().__init__(tag,attrib,**kwargs)
     
     def basicshape(self,forme : str, *args,**kwargs):
         
