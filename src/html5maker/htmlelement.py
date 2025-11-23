@@ -1,23 +1,20 @@
 #!../myenv/bin/python3
 
-import pathlib
+import os
 from pathlib import Path
 from xml.etree import ElementTree as et
-from xml.etree.ElementTree import Element
-
 from .converter import MdConverter
-from markdown.extensions import extra
 
 #abstract class htmlcontainer
-class HtmlElement(Element):
+class AbstractElement(et.Element):
     """
-    HtmlElement is a derived class from an xml.etree.ElementTree.Element
+    AbstractElement is a derived class from an xml.etree.ElementTree.Element
 
     This is the base class for :
 
-    Section html tags like Article, Section, Body ...
+    html tags like Article, Section, Body ...
 
-    Text html tags like paragraph, li, h[1-6] ...
+    svg, Text html tags like paragraph, li, h[1-6] ...
 
     """
     def __init__(self,tag : str, attrib : dict = {},**extra) :
@@ -33,57 +30,23 @@ class HtmlElement(Element):
         self.append(element)
         return self
 
-    def tostring(self)->str:
+    def to_html_string(self)->str:
         return et.tostring(self,encoding = 'unicode',method = 'html',short_empty_elements = True)
 
-class BlockElement(HtmlElement):
+class HtmlElement(AbstractElement):
         
     """ 
-    HTML section Element : section, article, aside.... 
+    HTML Element : section, article, aside.... 
 
-    do not use that element to insert text in it
     """
+    def __init__(self,tag : str,content : str = '',attrib : dict = {}, **extra):
 
-    converter = MdConverter(extensions = ['extra'],output_format = "html")
+        super().__init__(tag,attrib,**extra)
+        self.text = content
 
-    def add_markdown(self,*input_contents : [ str | pathlib.PurePosixPath ], parent : str = 'article', attrib = {}, **kwargs):
+    def content_list(self, block : str = 'article',target : str = 'h2',attrib = {},**extra)-> AbstractElement :
 
-        """
-        Add element from a Markdown File or string written in markdown syntax
-
-        you can choose, with 'parent' attribute the tag root element append
-
-        """
-        for content in input_contents:
-
-            try:
-                content = content.read_text(encoding = 'utf-8')
-
-            except IsADirectoryError :
-                print(f"{content} : Path id a directory, not file !!")
-                continue
-
-            except FileNotFoundError :
-                print(f"{content} : Not a correct filename !!")
-                continue
-
-            except AttributeError :
-
-                if(type(content) != str):
-
-                    print(f"{content} : Not a correct string !!")
-                    continue
-
-            tree = self.convert(content)
-            tree.tag = parent
-            attrib.update(kwargs)
-            tree.attrib = attrib
-
-            self.append(tree)
-
-    def content_list(self, target : str = 'h2',attrib = {},**extra) :
-
-        """Create a linked element list from an element
+        """Create a ul li listed elements from an element
 
         Arguments:
 
@@ -91,50 +54,25 @@ class BlockElement(HtmlElement):
 
         Returns:
 
-            A BlockElement aka xml.etree.ElementTree 
+            An HtmlElement aka xml.etree.ElementTree 
         """
 
-        ul = BlockElement('ul', attrib, **extra)
+        ol = HtmlElement('ol', attrib, **extra)
 
-        elts = (elt for elt in self.iterfind(f'.//{target}'))
+        elts = (elt for elt in self.iterfind(f'.//{block}'))
         
         for elt in elts:
-            string = elt.text
+            h = elt.find(f'{target}')
+            string = h.text
             elt.set('id',string)
-            li=et.SubElement(ul,'li')
+            li=et.SubElement(ol,'li')
             a=et.SubElement(li,'a',href=f'#{string}',title=f'Aller à {string}')
             a.text=string
 
-        return ul
+        return ol
 
-    @classmethod
-    def convert(cls,md_string : str): 
-
-        root = cls.converter.convert_to_tree(md_string)
-        cls.converter.reset()
-        return root
-
-    @staticmethod
-    def new_tag(tag : str, attrib : dict = {},**extra):
-
-        return BlockElement(tag,attrib, **extra)
-
-class InlineElement(HtmlElement):
-
-    """ HTML text Element : section, article, aside.... """
-
-    def __init__(self,tag : str,content : str = '',attrib : dict = {}, **extra):
-
-        super().__init__(tag,attrib,**extra)
-        self.text = content
-
-    @staticmethod
-    def new_tag(tag : str, content : str ='', attrib : dict = {},**extra):
-
-        return InlineElement(tag, content, attrib, **extra)
-
-#abstract class svgcontainer
-class SvgElement(HtmlElement):
+#class svgcontainer
+class SvgElement(AbstractElement):
 
     """ Svg Element : Svg, use, defs, animate.... """
     
@@ -189,7 +127,60 @@ class SvgElement(HtmlElement):
         self.append(SvgElement(forme,attrib,**extra))
         return self
 
-    @staticmethod
-    def new_tag(tag : str, attrib : dict = {},**extra):
+class FactoryElement:
+
+    converter = MdConverter(extensions=['pymdownx.extra','pymdownx.keys','pymdownx.mark'],output_format = "html")
+
+    def __init__(self,src_dir : [str | os.PathLike] = '.'):
+
+        """ 
+        Factory class to produce:
+            Htmltag, SvgTag, Html from markdown
+        """
+        self.src : [str | os.PathLike] = src_dir
+
+    def svg_tag(tag : str, attrib : dict = {},**extra) -> SvgElement:
 
         return SvgElement(tag,attrib, **extra)
+
+    def html_tag(tag : str, content : str ='', attrib : dict = {},**extra):
+
+        return HtmlElement(tag, content, attrib, **extra)
+
+    def from_markdown(self,*input_contents : [ str | os.PathLike ], parent : str = 'article', attributes = {}, **kwargs):
+
+        """
+        Add element from a Markdown File or string written in markdown syntax
+
+        you can choose, with 'parent' attribute the tag root element append
+
+        """
+        for content in input_contents:
+
+            try :
+                filesrc = Path(self.src / content)
+
+            except IsADirectoryError :
+                print(f"{content} : Path is a directory, not a file !!")
+                continue
+
+            except FileNotFoundError :
+                print(f"{content} : Not a correct filename !!")
+                continue
+
+            else:
+
+                content = filesrc.read_text(encoding = 'utf-8-sig')
+
+            tree = self._mdconvert(content)
+            
+            tree.tag = parent
+            tree.attrib.update(attributes)
+            return tree
+
+    def _mdconvert(cls,md_string : str): 
+
+        root = cls.converter.convert_to_tree(md_string)
+        cls.converter.reset()
+        return root
+

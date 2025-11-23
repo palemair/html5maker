@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from .htmlelement import SvgElement, InlineElement
+from .htmlelement import SvgElement, HtmlElement
 
 #Concrete Svg container 
 class Svg(SvgElement):
@@ -27,7 +27,7 @@ class Svg(SvgElement):
         self.set('height' , f"{self.height}")
         
         if (css_file is not None and Path(ccs_file).exists()):
-            style = self.new_tag('style',{"type":"text/css"})
+            style = HtmlElement('style',attrib = {"type":"text/css"})
             style.text = Path(css_file).read_text('utf-8')
             self.insert(0,style)
 
@@ -65,4 +65,4 @@ def Text(xpos : int, ypos : int, content : str, attrib : dict = {}, **extra):
 
     position = { 'x' : str(xpos), 'y' : str(ypos)}
     attrib.update(position)
-    return InlineElement('text',content,attrib, **extra)
+    return HtmlElement('text',content,attrib, **extra)

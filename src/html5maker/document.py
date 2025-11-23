@@ -3,132 +3,147 @@
 import os
 from pathlib import Path
 from getpass import getuser
+from collections import OrderedDict
+from .htmlelement import HtmlElement, FactoryElement
 
-from .htmlelement import BlockElement, InlineElement
+class Pages(dict):
 
-class Page(BlockElement):
+    """ 
+        Wrapper dict around pages collection Document object:
+        Allowing to avoid the index name for the first web page :
+
+        labels : name + filename(== name except 1st == index).html
     """
-    Body element : root of the document without metadatas
 
-    """
-    def __init__(self,title : str, md_file : any = None, attrib : dict = {},**kwargs):
-        super().__init__('body',attrib,**kwargs)
-        self.title = title
-        if md_file is not None:
-            self.add_markdown(md_file)
+    def filenames(self):
+        index,*others = list(self.keys())
+        index = 'index.htlm'
+        others = (f'{title}.html' for title in others)
 
-class HtmlDocument:
-    """ Document object: it contains the name of the project,
-        directory where to put the files, the language, the css files,
-        and the authors informations. """
+        return (index,*others)
 
-    firstpage = 'index'
+    def labels(self):
+        return tuple(zip(self.keys(),self.filenames()))
+
+    def all_items(self):
+        return tuple(zip(self.keys(),self.values(),self.filenames()))
+
+class HtmlDocument(FactoryElement):
+
+    """ 
+        Document object: contains the name of the project,
+        directories src and dest to put the files, the language, the css files,
+        and the authors informations.
+        pages == each independant part of the global document
+    """ 
 
     def __init__(self,name : str,
-                 src_dir : str | os.PathLike = None,
-                 dest_dir : str | os.PathLike = None,
+                 src_dir : [str | os.PathLike] = '.',
+                 dest_dir :[str | os.PathLike] = '~/Bureau',
                  lang : str='fr'):
-
-        self.pages = {}
         self.name = name
         self.lang = lang
-        self.src_dir = Path(src_dir).expanduser().resolve()
-        dest = Path(dest_dir).expanduser().resolve()
-        self.dest_dir = dest / self.name 
-        self.dest_dir.mkdir(exist_ok = True)
+        self.pages = Pages()
 
-    def get_page(self,name:str):
-        return self.pages[name]
+        try :
+            src = Path(src_dir).expanduser().absolute()
 
-    def add_page(self, *pages : Page)-> Page :
-        """Add new page. """
+        except FileNotFoundError :
+            print(f"{src_dir} : Path is not a directory !!")
+            return
 
-        for page in pages:
-            if self.pages == {} :
-                page.title = self.name
-                self.pages[self.__class__.firstpage] = page
+        if src.is_dir() is False:
+            return
 
-            elif (page.title not in self.pages.keys()):
-                    self.pages[page.title] = page
-        
-            else :
-                print("page exist, can't duplicate")
+        super().__init__(src)
+
+        try :
+            dest = Path(dest_dir).expanduser().absolute()
+
+        except FileNotFoundError :
+            print(f"{dest_dir} : Path is not a directory !!")
+            return
+
+        if dest.is_dir() is False :
+            return
+
+        self.dest = dest / name
+        self.dest.mkdir(exist_ok = True)
+
+    def add(self,title : str, element : HtmlElement):
+
+        if title not in self.pages.keys():
+            self.pages[title] = element
+        else:
+            print("Page exist, can't duplicate !!")
 
         return self
-         
-    def __str__(self) ->str:
 
-        ret = f'< Contenu du document :\n{self.name} :'
-        for k,v in self.pages.items():
-            ret += f'\n\t{v.title} -> "{k}.html"'
-        ret += ' >'
-        return ret
+    def remove(self,title : str):
 
-    def add_head(self,page : Page)-> str:
+        if title in self.pages.keys():
+            self.pages.pop(title)
+        else:
+            print("Not in the document !!")
 
-        html =f'<html lang ="{self.lang}">\n'
+        return self
 
-        #head of the page
-        html += f'<head><meta charset = "utf-8" />\n'
-        html += f'<title>{page.title}</title>\n'
-        html += f'<meta name="author" content="{getuser()}" />\n'
-        html += f'<meta name="viewport" content="width=device-width" initial-scale = "1.0" />\n'
-        for file in self.src_dir.glob('*.css'):
-            html += f'<link rel="stylesheet" href="{file.resolve()}" />\n'
+    def main_menu(self,attrib :dict = {'class' : 'global'}, **extra) -> HtmlElement :
 
-        html += f'</head>\n'
+        nav = HtmlElement('nav')
+        ul=HtmlElement('ul')
 
-        return html
-
-    def main_menu(self,attrib :dict = {}, **extra) ->BlockElement :
-
-        header = BlockElement('header',attrib,**extra)
-
-        ul=BlockElement('ul',{'id' : 'menu'})
-
-        for k,v in self.pages.items():
-            if k != self.__class__.firstpage:
-                t = k
-            else:
-                t = self.name
-            li = InlineElement('li')
-            a = InlineElement('a',t,{'href': f'{k}.html', 'title' : f'Aller à {t}'})
+        for name, filename in self.pages.labels():
+            li = HtmlElement('li')
+            a = HtmlElement('a',name,{'href': f'{filename}', 'title' : f'Aller à {name}'})
             ul += li + a
+        nav += ul
 
-        return header + ul
+        return nav
         
+    def __repr__(self):
+
+        ret = (f'{n} -> {f}' for n,f in self.pages.labels())
+        return '\n'.join(ret)
+
     def to_file(self, menu_on : bool = False):
         
-        menu = self.main_menu()
+        html = []
+         
+        for name,page,filename in self.pages.all_items():
+            file = self.dest / filename
 
-        for name,page in self.pages.items():
-            file = self.dest_dir / name
-            file = file.with_suffix('.html')
-            head = self.add_head(page)
+            head =  f'<html lang ="{self.lang}">'
+            head += f'<head><meta charset = "utf-8" />'
+            head += f'<title>{name}</title>'
+            head += f'<meta name="author" content="{getuser()}" />'
+            head += f'<meta name="viewport" content="width=device-width" initial-scale = "1.0" />'
+            for css in self.src.glob('*.css'):
+                head += f'<link rel="stylesheet" href="{css.resolve()}" />'
+
+            head += f'</head>\n'
+
+            html.append(head)
+
             if menu_on is True :
-                page.insert(0,self.main_menu())
-            body = page.tostring()
-             
+                menu = self.main_menu()
+                page.insert(0,menu)
+
+            body = page.to_html_string()
+            html.append(body)
+            
+            html.insert(0, """<!DOCTYPE html>\n""")
+            html.append("""\n</html>""")
+ 
+            h = ''.join(html)
+
             with file.open('w',encoding = 'utf-8') as f:
-                f.write('<!DOCTYPE html>\n')
-                f.write(head)
-                f.write(body)
-                f.write('\n</html>')
+                f.write(h)
 
     def tostring(self):
         
-        ret = ''
         for name,page in self.pages.items():
-            ret += f'*** page : {name} ***:\n'
-            ret += page.tostring()
+            ret = f'*** page : {name} ***:\n'
+            ret += page.to_html_string()
             ret += f'\n*** end page : {name} ***\n'
         return ret
-
-    def srcfile(self,value :str):
-        
-        ret = Path(self.src_dir / value)
-        if(ret.exists()):
-            return ret
-        else:
-            print('Bad file name !!')
-            return None
