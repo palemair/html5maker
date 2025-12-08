@@ -47,7 +47,7 @@ class Svg(SvgElement):
     def __exit__(self,exc_type, exc_value, traceback):
         
         self.set('width' , '100%')
-        self.set('height' , 'auto')
+        self.set('height' , '100%')
         self.set('viewBox', f"0 0 {self.width} {self.height}")
 
 def Groupe(attrib : dict = {}, **extra):

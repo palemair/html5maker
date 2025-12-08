@@ -3,8 +3,8 @@
 import os
 from pathlib import Path
 from getpass import getuser
-from collections import OrderedDict
-from .htmlelement import HtmlElement, FactoryElement
+from .htmlelement import HtmlElement as htmlE
+from .htmlelement import FactoryElement
 
 class Pages(dict):
 
@@ -28,6 +28,7 @@ class Pages(dict):
     def all_items(self):
         return tuple(zip(self.keys(),self.values(),self.filenames()))
 
+
 class HtmlDocument(FactoryElement):
 
     """ 
@@ -38,21 +39,29 @@ class HtmlDocument(FactoryElement):
     """ 
 
     def __init__(self,name : str,
+                 logo : [str | os.PathLike] = None,
                  src_dir : [str | os.PathLike] = '.',
                  dest_dir :[str | os.PathLike] = '~/Bureau',
                  lang : str='fr'):
+
         self.name = name
         self.lang = lang
         self.pages = Pages()
+
+        if logo is not None:
+            self.logo = str(Path(logo).absolute())
+        else:
+            self.logo = None
 
         try :
             src = Path(src_dir).expanduser().absolute()
 
         except FileNotFoundError :
-            print(f"{src_dir} : Path is not a directory !!")
+            print(f"{dest_dir} : Path is not a valid filenanme !!")
             return
 
         if src.is_dir() is False:
+            print(f"{src_dir} : Path is not a directory !!")
             return
 
         super().__init__(src)
@@ -61,16 +70,17 @@ class HtmlDocument(FactoryElement):
             dest = Path(dest_dir).expanduser().absolute()
 
         except FileNotFoundError :
-            print(f"{dest_dir} : Path is not a directory !!")
+            print(f"{dest_dir} : Path is not a valid filenanme !!")
             return
 
         if dest.is_dir() is False :
+            print(f"{src_dir} : Path is not a directory !!")
             return
 
         self.dest = dest / name
         self.dest.mkdir(exist_ok = True)
 
-    def add(self,title : str, element : HtmlElement):
+    def add(self,title : str, element : htmlE):
 
         if title not in self.pages.keys():
             self.pages[title] = element
@@ -88,29 +98,17 @@ class HtmlDocument(FactoryElement):
 
         return self
 
-    def main_menu(self,attrib :dict = {'class' : 'global'}, **extra) -> HtmlElement :
-
-        nav = HtmlElement('nav')
-        ul=HtmlElement('ul')
-
-        for name, filename in self.pages.labels():
-            li = HtmlElement('li')
-            a = HtmlElement('a',name,{'href': f'{filename}', 'title' : f'Aller à {name}'})
-            ul += li + a
-        nav += ul
-
-        return nav
-        
     def __repr__(self):
 
         ret = (f'{n} -> {f}' for n,f in self.pages.labels())
         return '\n'.join(ret)
 
-    def to_file(self, menu_on : bool = False):
+    def save(self, menu_on : bool = True, attr : dict = {"class" : "global"}):
         
-        html = []
-         
+        css_dir = self.src / 'styles'
+
         for name,page,filename in self.pages.all_items():
+            html = []
             file = self.dest / filename
 
             head =  f'<html lang ="{self.lang}">'
@@ -118,22 +116,40 @@ class HtmlDocument(FactoryElement):
             head += f'<title>{name}</title>'
             head += f'<meta name="author" content="{getuser()}" />'
             head += f'<meta name="viewport" content="width=device-width" initial-scale = "1.0" />'
-            for css in self.src.glob('*.css'):
+            for css in css_dir.glob('*.css'):
                 head += f'<link rel="stylesheet" href="{css.resolve()}" />'
 
-            head += f'</head>\n'
+            head += f'</head>\n<body>\n'
 
             html.append(head)
 
-            if menu_on is True :
-                menu = self.main_menu()
-                page.insert(0,menu)
+            header = htmlE('header',attr)
 
-            body = page.to_html_string()
-            html.append(body)
-            
+            if self.logo is not None:
+                lg = htmlE('img',{'src' : self.logo})
+                header += lg
+
+            if len(self.pages) > 1 :
+                nav = htmlE('nav')
+                ul = htmlE('ul')
+                tmpdict = { n:f for n,f in self.pages.labels() if n != name}
+
+                for n, f in tmpdict:
+                    li = htmlE('li')
+                    a = htmlE('a',name,{'href': f'{filename}', 'title' : f'Aller à {name}'})
+                    ul += (li + a)
+                nav += ul
+                header += nav
+
+            header += htmlE('h1',content = name)
+
+            html.append(header.to_html_string())
+
+            content = page.to_html_string()
+            html.append(content)
+           
             html.insert(0, """<!DOCTYPE html>\n""")
-            html.append("""\n</html>""")
+            html.append("""\n</body>\n</html>""")
  
             h = ''.join(html)
 
@@ -142,8 +158,10 @@ class HtmlDocument(FactoryElement):
 
     def tostring(self):
         
-        for name,page in self.pages.items():
-            ret = f'*** page : {name} ***:\n'
-            ret += page.to_html_string()
-            ret += f'\n*** end page : {name} ***\n'
+        ret = ''
+        for k, v in self.pages.items():
+            ret += f'\n*** page : {k} ***:\n'
+            ret += v.to_html_string()
+            ret += f'\n*** end page : {k} ***'
+
         return ret

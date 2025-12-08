@@ -20,8 +20,9 @@ class AbstractElement(et.Element):
     def __init__(self,tag : str, attrib : dict = {},**extra) :
         """ Allow using '_' instead of '-' """
 
-        change_extra = [ k.replace('_','-') for k in extra.keys()]
-        attrib.update(dict(zip(change_extra,extra.values())))
+        if extra is not None:
+            change_extra = [ k.replace('_','-') for k in extra.keys()]
+            attrib.update(dict(zip(change_extra,extra.values())))
         super().__init__(tag,attrib)
 
     def __add__(self,element):
@@ -31,6 +32,7 @@ class AbstractElement(et.Element):
         return self
 
     def to_html_string(self)->str:
+
         return et.tostring(self,encoding = 'unicode',method = 'html',short_empty_elements = True)
 
 class HtmlElement(AbstractElement):
@@ -39,37 +41,11 @@ class HtmlElement(AbstractElement):
     HTML Element : section, article, aside.... 
 
     """
-    def __init__(self,tag : str,content : str = '',attrib : dict = {}, **extra):
+    def __init__(self,tag : str, attrib : dict = {}, content : str = None, **extra):
 
         super().__init__(tag,attrib,**extra)
-        self.text = content
-
-    def content_list(self, block : str = 'article',target : str = 'h2',attrib = {},**extra)-> AbstractElement :
-
-        """Create a ul li listed elements from an element
-
-        Arguments:
-
-            target : Element searched
-
-        Returns:
-
-            An HtmlElement aka xml.etree.ElementTree 
-        """
-
-        ol = HtmlElement('ol', attrib, **extra)
-
-        elts = (elt for elt in self.iterfind(f'.//{block}'))
-        
-        for elt in elts:
-            h = elt.find(f'{target}')
-            string = h.text
-            elt.set('id',string)
-            li=et.SubElement(ol,'li')
-            a=et.SubElement(li,'a',href=f'#{string}',title=f'Aller à {string}')
-            a.text=string
-
-        return ol
+        if content is not None:
+            self.text = content
 
 #class svgcontainer
 class SvgElement(AbstractElement):
@@ -139,15 +115,7 @@ class FactoryElement:
         """
         self.src : [str | os.PathLike] = src_dir
 
-    def svg_tag(tag : str, attrib : dict = {},**extra) -> SvgElement:
-
-        return SvgElement(tag,attrib, **extra)
-
-    def html_tag(tag : str, content : str ='', attrib : dict = {},**extra):
-
-        return HtmlElement(tag, content, attrib, **extra)
-
-    def from_markdown(self,*input_contents : [ str | os.PathLike ], parent : str = 'article', attributes = {}, **kwargs):
+    def from_markdown(self,content : [ str | os.PathLike ], parent : str = None, attr = {}, **extra):
 
         """
         Add element from a Markdown File or string written in markdown syntax
@@ -155,32 +123,40 @@ class FactoryElement:
         you can choose, with 'parent' attribute the tag root element append
 
         """
-        for content in input_contents:
+        try :
+            filesrc = Path(self.src / content)
 
-            try :
-                filesrc = Path(self.src / content)
+        except IsADirectoryError :
+            print(f"{content} : Path is a directory, not a file !!")
+            return
 
-            except IsADirectoryError :
-                print(f"{content} : Path is a directory, not a file !!")
-                continue
+        except FileNotFoundError :
+            print(f"{content} : Not a correct filename !!")
+            return
 
-            except FileNotFoundError :
-                print(f"{content} : Not a correct filename !!")
-                continue
+        else:
+            content = filesrc.read_text(encoding = 'utf-8-sig')
 
-            else:
+        tree = self._mdconvert(content)
 
-                content = filesrc.read_text(encoding = 'utf-8-sig')
-
-            tree = self._mdconvert(content)
-            
+        if parent is not None:
             tree.tag = parent
-            tree.attrib.update(attributes)
-            return tree
+            tree.attrib.update(attr)
+            tree.attrib.update(extra)
 
+        return tree
+
+    def svg_tag(self,tag : str, attrib : dict = {},**extra) -> SvgElement:
+
+        return SvgElement(tag,attrib, **extra)
+
+    def html_tag(self,tag : str, attr : dict = {},content : str = None, **extra):
+
+        return HtmlElement(tag, attr, content, **extra)
+
+    @classmethod
     def _mdconvert(cls,md_string : str): 
 
         root = cls.converter.convert_to_tree(md_string)
         cls.converter.reset()
         return root
-
