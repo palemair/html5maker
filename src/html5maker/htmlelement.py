@@ -31,8 +31,10 @@ class AbstractElement(et.Element):
         self.append(element)
         return self
 
-    def to_html_string(self)->str:
+    def to_html_string(self,indent : bool = True)->str:
 
+        if indent is True :
+            et.indent(self)
         return et.tostring(self,encoding = 'unicode',method = 'html',short_empty_elements = True)
 
 class HtmlElement(AbstractElement):

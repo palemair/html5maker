@@ -58,11 +58,11 @@ def Defs(attrib : dict = {}, **extra):
 
 def Use(href : str,attrib : dict = {}, **extra):
 
-    attrib.update({"xink:href" : f'#{href}'})
+    attrib.update({"href" : f'#{href}'})
     return SvgElement('use',attrib, **extra)
 
 def Text(xpos : int, ypos : int, content : str, attrib : dict = {}, **extra):
 
     position = { 'x' : str(xpos), 'y' : str(ypos)}
     attrib.update(position)
-    return HtmlElement('text',content,attrib, **extra)
+    return HtmlElement('text',attrib,content, **extra)

@@ -103,7 +103,7 @@ class HtmlDocument(FactoryElement):
         ret = (f'{n} -> {f}' for n,f in self.pages.labels())
         return '\n'.join(ret)
 
-    def save(self, menu_on : bool = True, attr : dict = {"class" : "global"}):
+    def save(self, menu_on : bool = True, attr : dict = {"class" : "global"},indent : bool = False):
         
         css_dir = self.src / 'styles'
 
@@ -145,7 +145,7 @@ class HtmlDocument(FactoryElement):
 
             html.append(header.to_html_string())
 
-            content = page.to_html_string()
+            content = page.to_html_string(indent = indent)
             html.append(content)
            
             html.insert(0, """<!DOCTYPE html>\n""")
