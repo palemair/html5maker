@@ -30,6 +30,9 @@ def Header(attrib : dict = {}, **extra):
 def Footer(attrib : dict = {}, **extra):
     return HtmlElement('footer', attrib, **extra)
 
+def Div(attrib : dict = {}, **extra):
+    return HtmlElement('div',attrib, **extra)
+
 def Ul(attrib : dict = {}, **extra):
     return HtmlElement('ul',attrib, **extra)
 
@@ -38,7 +41,11 @@ def Ol(attrib : dict = {}, **extra):
 
 def Img(src : str , alt : str = '',attrib : dict = {}, **extra):
     attrib.update({"src" : src})
-    return HtmlElement('img', alt ,attrib, **extra)
+    attrib.update({"alt" : alt})
+    return HtmlElement('img', attrib, **extra)
+
+def I(attrib : dict = {}, **extra):
+    return HtmlElement('i', attrib, **extra)
 
 def H1(content : str, attrib : dict = {}, **extra):
     return HtmlElement('h1', attrib,content, **extra)

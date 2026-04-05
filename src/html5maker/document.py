@@ -17,7 +17,7 @@ class Pages(dict):
 
     def filenames(self):
         index,*others = list(self.keys())
-        index = 'index.htlm'
+        index = 'index.html'
         others = (f'{title}.html' for title in others)
 
         return (index,*others)
@@ -49,7 +49,7 @@ class HtmlDocument(FactoryElement):
         self.pages = Pages()
 
         if logo is not None:
-            self.logo = str(Path(logo).absolute())
+            self.logo = Path(logo).name
         else:
             self.logo = None
 
@@ -103,7 +103,7 @@ class HtmlDocument(FactoryElement):
         ret = (f'{n} -> {f}' for n,f in self.pages.labels())
         return '\n'.join(ret)
 
-    def save(self, menu_on : bool = True, attr : dict = {"class" : "global"},indent : bool = False):
+    def save_one(self,attr : dict ,indent : bool = False):
         
         css_dir = self.src / 'styles'
 
@@ -113,21 +113,56 @@ class HtmlDocument(FactoryElement):
 
             head =  f'<html lang ="{self.lang}">'
             head += f'<head><meta charset = "utf-8" />'
-            head += f'<title>{name}</title>'
             head += f'<meta name="author" content="{getuser()}" />'
             head += f'<meta name="viewport" content="width=device-width" initial-scale = "1.0" />'
+            head += f'<title>{name}</title>'
             for css in css_dir.glob('*.css'):
-                head += f'<link rel="stylesheet" href="{css.resolve()}" />'
+                head += f'<link rel="stylesheet" href="css/{css.name}"/>'
+
+            head += f'</head>\n'
+
+            html.append(head)
+
+            content = page.to_html_string(indent = indent)
+            html.append(content)
+           
+            html.insert(0, """<!DOCTYPE html>\n""")
+            html.append("""\n</html>""")
+ 
+            h = ''.join(html)
+
+            with file.open('w',encoding = 'utf-8') as f:
+                f.write(h)
+
+    def save(self, menu_on : bool = True, attr : dict = {"class" : "global"},indent : bool = False):
+        
+        css_dir = self.src / 'styles'
+        js_dir = self.src / 'js'
+
+        for name,page,filename in self.pages.all_items():
+            html = []
+            file = self.dest / filename
+
+            head =  f'<html lang ="{self.lang}">'
+            head += f'<head><meta charset = "utf-8" />'
+            head += f'<meta name="author" content="{getuser()}" />'
+            head += f'<meta name="viewport" content="width=device-width" initial-scale = "1.0" />'
+            head += f'<title>{name}</title>'
+            for css in css_dir.glob('*.css'):
+                head += f'<link rel="stylesheet" href="styles/{css.name}"/>'
+            for js in js_dir.glob('*.js'):
+                head += f'<script defer src="js/{js.name}"></script>'
 
             head += f'</head>\n<body>\n'
 
             html.append(head)
 
             header = htmlE('header',attr)
+            div = htmlE('div')
 
             if self.logo is not None:
-                lg = htmlE('img',{'src' : self.logo})
-                header += lg
+                lg = htmlE('img',{'src' : f"images/{self.logo}"})
+                div += lg
 
             if len(self.pages) > 1 :
                 nav = htmlE('nav')
@@ -139,9 +174,9 @@ class HtmlDocument(FactoryElement):
                     a = htmlE('a',name,{'href': f'{filename}', 'title' : f'Aller à {name}'})
                     ul += (li + a)
                 nav += ul
-                header += nav
+                div += nav
 
-            header += htmlE('h1',content = name)
+            header += div
 
             html.append(header.to_html_string())
 
@@ -149,6 +184,10 @@ class HtmlDocument(FactoryElement):
             html.append(content)
            
             html.insert(0, """<!DOCTYPE html>\n""")
+            footer = htmlE('footer',attr)
+            footer += htmlE('p',content = name)
+
+            html.append(footer.to_html_string())
             html.append("""\n</body>\n</html>""")
  
             h = ''.join(html)
